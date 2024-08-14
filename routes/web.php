@@ -14,6 +14,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/blastemail', [BlastEmailController::class, 'blastemail'])->name('blastemail');
 Route::get('/', [BlastEmailController::class, 'index'])->name('index');
+Route::get('/hideemail/{id}', [BlastEmailController::class, 'hideemail'])->name('hideemail');
+Route::post('/skip_site', [BlastEmailController::class, 'skip_site'])->name('skip_site');
+Route::post('/skip_extension', [BlastEmailController::class, 'skip_extension'])->name('skip_extension');
 
 Route::post('/stop-crawling', function () {
     DB::table('control_flags')->where('name', 'crawling_active')->update(['active' => false]);
