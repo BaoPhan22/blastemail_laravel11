@@ -68,6 +68,7 @@
                     <h5>Date: {{ date('d M y') }}</h5>
                     <h5>Status: {{ !!$status->active ? 'Running' : 'Stopped' }}</h5>
                     <h5>Total: {{ count($emails) }} / {{ count($emails_count) }}</h5>
+                    <p style="word-wrap: break-word;">Last URL: {{ $last_url }}</p>
                 </div>
             </div>
 

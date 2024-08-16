@@ -18,12 +18,14 @@ class BlastEmailController extends Controller
     protected $skip_sites;
     protected $skip_extensions;
     protected $visited_urls;
+    protected $last_url;
 
     public function __construct()
     {
         $this->skip_sites = SkipSite::pluck('url')->toArray();
         $this->skip_extensions = SkipExtension::pluck('extension')->toArray();
         $this->visited_urls = VisitedUrls::pluck('url')->toArray();
+        $this->last_url = LastVisitedUrl::where('id', 1)->first()->url;
     }
 
     public function index()
@@ -36,10 +38,26 @@ class BlastEmailController extends Controller
                 ->get();
 
             $emails_count = BlastEmail::get();
+
             $skip_sites = $this->skip_sites;
+
             $skip_extensions = $this->skip_extensions;
-            $status = DB::table('control_flags')->where('name', 'crawling_active')->first();
-            return view('welcome', ['emails' => $emails, 'emails_count' => $emails_count, 'status' => $status, 'skip_sites' => $skip_sites, 'skip_extensions' => $skip_extensions]);
+
+            $status = DB::table('control_flags')->where('id', 1)->first();
+
+            $last_url = $this->last_url;
+
+            return view(
+                'welcome',
+                [
+                    'emails' => $emails,
+                    'last_url' => $last_url,
+                    'emails_count' => $emails_count,
+                    'status' => $status,
+                    'skip_sites' => $skip_sites,
+                    'skip_extensions' => $skip_extensions
+                ]
+            );
         } catch (\Illuminate\Http\Client\RequestException $e) {
             Log::error('RequestException: ' . $e->getMessage());
             return redirect()->route('index')->with('error', 'An error occurred while fetching emails.');
@@ -57,12 +75,14 @@ class BlastEmailController extends Controller
     public function skip_site(Request $request)
     {
         SkipSite::firstOrCreate(['url' => $request->url]);
+        $this->skip_sites[] = $request->url;
         return redirect()->route('index');
     }
 
     public function skip_extension(Request $request)
     {
         SkipExtension::firstOrCreate(['extension' => $request->extension]);
+        $this->skip_extensions[] = $request->extension;
         return redirect()->route('index');
     }
 
@@ -71,7 +91,7 @@ class BlastEmailController extends Controller
         set_time_limit(0); // Allow script to run indefinitely
 
         $initUrl = empty($request->url)
-            ? (LastVisitedUrl::where('id', 1)->first()->url ?? 'https://singroll.com/web/')
+            ? ($this->last_url ?? 'https://singroll.com/web/')
             : $request->url;
 
         LastVisitedUrl::updateOrCreate(
@@ -82,11 +102,11 @@ class BlastEmailController extends Controller
         $collectedEmails = [];
         $visitedUrls = $this->visited_urls;
 
-        DB::table('control_flags')->where('name', 'crawling_active')->update(['active' => true]);
+        DB::table('control_flags')->where('id', 1)->update(['active' => true]);
 
         $this->crawlPage($initUrl, $collectedEmails, $visitedUrls);
 
-        DB::table('control_flags')->where('name', 'crawling_active')->update(['active' => false]);
+        DB::table('control_flags')->where('id', 1)->update(['active' => false]);
 
         return redirect()->route('index')->with('status', 'Crawling completed.');
     }
@@ -97,7 +117,7 @@ class BlastEmailController extends Controller
 
         $skip_sites = $this->skip_sites;
 
-        if (!DB::table('control_flags')->where('name', 'crawling_active')->value('active')) {
+        if (!DB::table('control_flags')->where('id', 1)->value('active')) {
             @Log::channel('blast_email')->info("Crawling stopped by user.");
             exit;
         }

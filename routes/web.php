@@ -19,6 +19,6 @@ Route::post('/skip_site', [BlastEmailController::class, 'skip_site'])->name('ski
 Route::post('/skip_extension', [BlastEmailController::class, 'skip_extension'])->name('skip_extension');
 
 Route::post('/stop-crawling', function () {
-    DB::table('control_flags')->where('name', 'crawling_active')->update(['active' => false]);
+    DB::table('control_flags')->where('id', 1)->update(['active' => false]);
     return redirect()->route('index')->with('status', 'Crawling has been stopped.');
 })->name('stop-crawling');
